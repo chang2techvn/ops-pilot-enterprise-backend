@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String
+  role          Role       @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  AuditLogs     AuditLog[]
+  projects      Project[]
+  tasks         Task[]
+  TimeLogs      TimeLog[]
+  organizations UserOrg[]
+}
+
+model Organization {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  projects    Project[]
+  users       UserOrg[]
+}
+
+model UserOrg {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model Project {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  organizationId String
+  ownerId        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  status         Status       @default(ACTIVE)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  owner          User         @relation(fields: [ownerId], references: [id])
+  tasks          Task[]
+}
+
+model Task {
+  id           String           @id @default(uuid())
+  title        String
+  description  String?
+  projectId    String
+  assigneeId   String?
+  status       TaskStatus       @default(TODO)
+  priority     Priority         @default(MEDIUM)
+  dueDate      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  assignee     User?            @relation(fields: [assigneeId], references: [id])
+  project      Project          @relation(fields: [projectId], references: [id])
+  dependents   TaskDependency[] @relation("Dependent")
+  dependencies TaskDependency[] @relation("DependsOn")
+  timeLogs     TimeLog[]
+}
+
+model TaskDependency {
+  id          String   @id @default(uuid())
+  taskId      String
+  dependsOnId String
+  createdAt   DateTime @default(now())
+  dependsOn   Task     @relation("Dependent", fields: [dependsOnId], references: [id])
+  task        Task     @relation("DependsOn", fields: [taskId], references: [id])
+
+  @@unique([taskId, dependsOnId])
+}
+
+model TimeLog {
+  id        String    @id @default(uuid())
+  taskId    String
+  userId    String
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  task      Task      @relation(fields: [taskId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  details    String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum Status {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
