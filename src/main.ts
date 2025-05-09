@@ -5,6 +5,7 @@ import authRoutes from './auth/routes';
 import workflowRoutes from './workflows/routes';
 import taskRoutes from './tasks/routes';
 import projectRoutes from './projects/routes';
+import timelogRoutes from './timelogs/routes';  // Import timeLog routes
 
 // Create Express application
 const app = express();
@@ -19,6 +20,7 @@ app.use('/auth', authRoutes);
 app.use('/workflows', workflowRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/projects', projectRoutes);
+app.use('/timelogs', timelogRoutes);  // Register timeLog routes
 
 // Route for the API root
 app.get('/', (req, res) => {

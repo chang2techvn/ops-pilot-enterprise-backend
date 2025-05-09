@@ -17,10 +17,10 @@ model User {
   updatedAt     DateTime   @updatedAt
   AuditLogs     AuditLog[]
   projects      Project[]
-  workflows     Workflow[]
   tasks         Task[]
   TimeLogs      TimeLog[]
   organizations UserOrg[]
+  workflows     Workflow[]
 }
 
 model Organization {
@@ -61,32 +61,32 @@ model Project {
 }
 
 model Workflow {
-  id          String       @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   projectId   String
   ownerId     String
-  order       Int          @default(0)
-  status      Status       @default(ACTIVE)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  project     Project      @relation(fields: [projectId], references: [id])
-  owner       User         @relation(fields: [ownerId], references: [id])
+  order       Int      @default(0)
+  status      Status   @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   tasks       Task[]
+  owner       User     @relation(fields: [ownerId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
 }
 
 model Task {
   id           String           @id @default(uuid())
   title        String
   description  String?
-  workflowId   String
   assigneeId   String?
   status       TaskStatus       @default(TODO)
   priority     Priority         @default(MEDIUM)
   dueDate      DateTime?
-  order        Int              @default(0)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  order        Int              @default(0)
+  workflowId   String
   assignee     User?            @relation(fields: [assigneeId], references: [id])
   workflow     Workflow         @relation(fields: [workflowId], references: [id])
   dependents   TaskDependency[] @relation("Dependent")
@@ -115,6 +115,8 @@ model TimeLog {
   notes     String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  date      DateTime
+  hours     Float
   task      Task      @relation(fields: [taskId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
 }
