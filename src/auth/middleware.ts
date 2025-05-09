@@ -61,7 +61,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 // Role-based authorization middleware
-export const requireRole = (role: string, requireOrgContext = false) => {
+export const requireRole = (role: string | string[], requireOrgContext = false) => {
   return (req: Request, res: Response, next: NextFunction) => {
     // Check if user is authenticated
     if (!req.context?.user) {
@@ -74,7 +74,8 @@ export const requireRole = (role: string, requireOrgContext = false) => {
     }
     
     // Check if the user has the required role
-    if (req.context.user.role !== role) {
+    const roles = Array.isArray(role) ? role : [role];
+    if (!roles.includes(req.context.user.role)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
     

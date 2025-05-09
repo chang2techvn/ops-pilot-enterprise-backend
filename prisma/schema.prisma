@@ -17,6 +17,7 @@ model User {
   updatedAt     DateTime   @updatedAt
   AuditLogs     AuditLog[]
   projects      Project[]
+  workflows     Workflow[]
   tasks         Task[]
   TimeLogs      TimeLog[]
   organizations UserOrg[]
@@ -56,22 +57,38 @@ model Project {
   status         Status       @default(ACTIVE)
   organization   Organization @relation(fields: [organizationId], references: [id])
   owner          User         @relation(fields: [ownerId], references: [id])
-  tasks          Task[]
+  workflows      Workflow[]
+}
+
+model Workflow {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  projectId   String
+  ownerId     String
+  order       Int          @default(0)
+  status      Status       @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project      @relation(fields: [projectId], references: [id])
+  owner       User         @relation(fields: [ownerId], references: [id])
+  tasks       Task[]
 }
 
 model Task {
   id           String           @id @default(uuid())
   title        String
   description  String?
-  projectId    String
+  workflowId   String
   assigneeId   String?
   status       TaskStatus       @default(TODO)
   priority     Priority         @default(MEDIUM)
   dueDate      DateTime?
+  order        Int              @default(0)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   assignee     User?            @relation(fields: [assigneeId], references: [id])
-  project      Project          @relation(fields: [projectId], references: [id])
+  workflow     Workflow         @relation(fields: [workflowId], references: [id])
   dependents   TaskDependency[] @relation("Dependent")
   dependencies TaskDependency[] @relation("DependsOn")
   timeLogs     TimeLog[]
@@ -116,12 +133,14 @@ model AuditLog {
 enum Role {
   ADMIN
   USER
+  PROJECT_MANAGER
 }
 
 enum OrgRole {
   OWNER
   ADMIN
   MEMBER
+  PROJECT_MANAGER
 }
 
 enum Status {
@@ -135,6 +154,7 @@ enum TaskStatus {
   IN_PROGRESS
   REVIEW
   DONE
+  COMPLETED
 }
 
 enum Priority {

@@ -5,7 +5,7 @@ import { requireRole } from '../auth/middleware';
 const router = express.Router();
 
 // Get all projects in the current organization
-router.get('/', requireRole('USER', true), async (req: Request, res: Response) => {
+router.get('/', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req: Request, res: Response) => {
   try {
     // Get organization ID from context (org context required by middleware)
     const organizationId = req.context!.user!.organizationId;
@@ -36,7 +36,7 @@ router.get('/', requireRole('USER', true), async (req: Request, res: Response) =
 });
 
 // Get a specific project
-router.get('/:id', requireRole('USER'), async (req: Request, res: Response) => {
+router.get('/:id', requireRole(['USER', 'PROJECT_MANAGER']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -78,7 +78,7 @@ router.get('/:id', requireRole('USER'), async (req: Request, res: Response) => {
 });
 
 // Create a new project
-router.post('/', requireRole('USER', true), async (req: Request, res: Response) => {
+router.post('/', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req: Request, res: Response) => {
   try {
     const { name, description } = req.body;
     
@@ -105,7 +105,7 @@ router.post('/', requireRole('USER', true), async (req: Request, res: Response) 
 });
 
 // Update a project
-router.patch('/:id', requireRole('USER'), async (req: Request, res: Response) => {
+router.patch('/:id', requireRole(['USER', 'PROJECT_MANAGER']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, status } = req.body;
@@ -140,7 +140,7 @@ router.patch('/:id', requireRole('USER'), async (req: Request, res: Response) =>
 });
 
 // Delete a project (soft delete by changing status)
-router.delete('/:id', requireRole('USER'), async (req: Request, res: Response) => {
+router.delete('/:id', requireRole(['USER', 'PROJECT_MANAGER']), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

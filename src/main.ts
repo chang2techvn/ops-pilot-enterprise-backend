@@ -2,6 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import { authMiddleware } from './auth/middleware';
 import authRoutes from './auth/routes';
+import workflowRoutes from './workflows/routes';
+import taskRoutes from './tasks/routes';
+import projectRoutes from './projects/routes';
 
 // Create Express application
 const app = express();
@@ -13,6 +16,9 @@ app.use(authMiddleware);
 
 // Import APIs that exist
 app.use('/auth', authRoutes);
+app.use('/workflows', workflowRoutes);
+app.use('/tasks', taskRoutes);
+app.use('/projects', projectRoutes);
 
 // Route for the API root
 app.get('/', (req, res) => {

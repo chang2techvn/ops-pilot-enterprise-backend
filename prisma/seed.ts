@@ -9,13 +9,15 @@ const prisma = new PrismaClient();
 // Import the enums directly since they're generated
 enum Role {
   ADMIN = 'ADMIN',
-  USER = 'USER'
+  USER = 'USER',
+  PROJECT_MANAGER = 'PROJECT_MANAGER'
 }
 
 enum OrgRole {
   OWNER = 'OWNER',
   ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER'
+  MEMBER = 'MEMBER',
+  PROJECT_MANAGER = 'PROJECT_MANAGER'
 }
 
 async function main() {
@@ -25,6 +27,7 @@ async function main() {
   await prisma.taskDependency.deleteMany();
   await prisma.timeLog.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.workflow.deleteMany();
   await prisma.project.deleteMany();
   await prisma.userOrg.deleteMany();
   await prisma.organization.deleteMany();
@@ -59,7 +62,7 @@ async function main() {
       email: 'jane@example.com',
       password: userPassword,
       name: 'Jane Smith',
-      role: Role.USER
+      role: Role.PROJECT_MANAGER
     }
   });
   console.log('Created user:', user2.email);
@@ -104,7 +107,7 @@ async function main() {
     data: {
       userId: user2.id,
       organizationId: org1.id,
-      role: OrgRole.ADMIN
+      role: OrgRole.PROJECT_MANAGER
     }
   });
 
@@ -164,12 +167,46 @@ async function main() {
   });
   console.log('Created project:', project3.name);
 
-  // Create tasks for Website Redesign project
+  // Create workflows for each project
+  const workflow1 = await prisma.workflow.create({
+    data: {
+      name: 'Design Phase',
+      description: 'Initial design and mockups',
+      projectId: project1.id,
+      ownerId: user2.id,
+      order: 1
+    }
+  });
+  console.log('Created workflow:', workflow1.name);
+
+  const workflow2 = await prisma.workflow.create({
+    data: {
+      name: 'Development Phase',
+      description: 'Coding and implementation',
+      projectId: project1.id,
+      ownerId: user2.id,
+      order: 2
+    }
+  });
+  console.log('Created workflow:', workflow2.name);
+
+  const workflow3 = await prisma.workflow.create({
+    data: {
+      name: 'App Planning',
+      description: 'Planning and architecture',
+      projectId: project2.id,
+      ownerId: user2.id,
+      order: 1
+    }
+  });
+  console.log('Created workflow:', workflow3.name);
+
+  // Create tasks for Website Redesign workflows
   const task1 = await prisma.task.create({
     data: {
       title: 'Design mockups',
       description: 'Create design mockups for the website',
-      projectId: project1.id,
+      workflowId: workflow1.id,
       assigneeId: user2.id,
       status: 'TODO',
       priority: 'HIGH'
@@ -181,7 +218,7 @@ async function main() {
     data: {
       title: 'Front-end development',
       description: 'Implement the front-end based on the mockups',
-      projectId: project1.id,
+      workflowId: workflow2.id,
       assigneeId: user3.id,
       status: 'TODO',
       priority: 'MEDIUM'
@@ -194,7 +231,7 @@ async function main() {
     data: {
       title: 'App wireframing',
       description: 'Create wireframes for the mobile app',
-      projectId: project2.id,
+      workflowId: workflow3.id,
       assigneeId: user1.id,
       status: 'IN_PROGRESS',
       priority: 'HIGH'
