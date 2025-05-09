@@ -1,0 +1,4 @@
+projectCode,date,hours,userName,description,billable
+EXT-001,2025-05-08,5,John Doe,Frontend work,true
+EXT-002,2025-05-07,8,Jane Smith,Backend API development,true
+EXT-003,2025-05-09,3.5,John Doe,Code review,false

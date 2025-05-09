@@ -8,19 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  email         String     @unique
+  id            String        @id @default(uuid())
+  email         String        @unique
   password      String
   name          String
-  role          Role       @default(USER)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  role          Role          @default(USER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   AuditLogs     AuditLog[]
   projects      Project[]
+  workflows     Workflow[]
   tasks         Task[]
   TimeLogs      TimeLog[]
+  externalLogs  ExternalLog[]
   organizations UserOrg[]
-  workflows     Workflow[]
 }
 
 model Organization {
@@ -87,11 +88,13 @@ model Task {
   updatedAt    DateTime         @updatedAt
   order        Int              @default(0)
   workflowId   String
+  externalCode String?          // External identifier for integration
   assignee     User?            @relation(fields: [assigneeId], references: [id])
   workflow     Workflow         @relation(fields: [workflowId], references: [id])
   dependents   TaskDependency[] @relation("Dependent")
   dependencies TaskDependency[] @relation("DependsOn")
   timeLogs     TimeLog[]
+  externalLogs ExternalLog[]    // Relation to external time logs
 }
 
 model TaskDependency {
@@ -119,6 +122,24 @@ model TimeLog {
   hours     Float
   task      Task      @relation(fields: [taskId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+}
+
+model ExternalLog {
+  id          String    @id @default(uuid())
+  taskId      String
+  userId      String?
+  userName    String    // External system user name
+  date        DateTime
+  hours       Float
+  description String?
+  source      String    // Name of the external system
+  externalId  String?   // ID from the external system
+  projectCode String    // External project/task code
+  billable    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  task        Task      @relation(fields: [taskId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
 }
 
 model AuditLog {
