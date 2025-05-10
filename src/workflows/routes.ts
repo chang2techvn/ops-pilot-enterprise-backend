@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authMiddleware, requireRole } from '../auth/middleware';
+import { auditAPIAction } from '../utils/auditLogger';
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // Create a new workflow
-router.post('/', requireRole('PROJECT_MANAGER', true), async (req: Request, res: Response) => {
+router.post('/', requireRole('PROJECT_MANAGER', true), auditAPIAction('Workflow'), async (req: Request, res: Response) => {
   try {
     const { name, description, projectId, order } = req.body;
 
@@ -112,7 +113,7 @@ router.post('/', requireRole('PROJECT_MANAGER', true), async (req: Request, res:
 });
 
 // Update a workflow
-router.put('/:id', requireRole('PROJECT_MANAGER', true), async (req: Request, res: Response) => {
+router.put('/:id', requireRole('PROJECT_MANAGER', true), auditAPIAction('Workflow'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, description, order, status } = req.body;
@@ -149,7 +150,7 @@ router.put('/:id', requireRole('PROJECT_MANAGER', true), async (req: Request, re
 });
 
 // Delete a workflow
-router.delete('/:id', requireRole('PROJECT_MANAGER', true), async (req: Request, res: Response) => {
+router.delete('/:id', requireRole('PROJECT_MANAGER', true), auditAPIAction('Workflow'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -188,4 +189,4 @@ router.delete('/:id', requireRole('PROJECT_MANAGER', true), async (req: Request,
   }
 });
 
-export default router; 
+export default router;

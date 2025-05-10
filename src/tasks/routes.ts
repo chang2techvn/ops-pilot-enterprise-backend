@@ -1,11 +1,13 @@
 import express, { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authMiddleware, requireRole } from '../auth/middleware';
+import { logAction, getUserIdFromRequest, auditAPIAction } from '../utils/auditLogger';
 
 const router = express.Router();
 
 // Middleware
 router.use(authMiddleware);
+router.use(auditAPIAction('Task'));
 
 // Get all tasks for a workflow
 router.get('/workflow/:workflowId', async (req: Request, res: Response) => {
@@ -157,6 +159,18 @@ router.post('/', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req: Req
       }
     });
 
+    // Log the create action manually (alternative to middleware approach)
+    const userId = req.context?.user?.userId;
+    if (userId) {
+      await logAction(
+        userId,
+        'CREATE',
+        'Task',
+        task.id,
+        { newData: task }
+      );
+    }
+
     return res.status(201).json(task);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -206,6 +220,9 @@ router.put('/:id', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req: R
       }
     }
 
+    // Log the old state before update
+    const userId = req.context?.user?.userId;
+    
     const task = await prisma.task.update({
       where: { id },
       data: {
@@ -218,6 +235,20 @@ router.put('/:id', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req: R
         order
       }
     });
+
+    // Log the update action manually
+    if (userId) {
+      await logAction(
+        userId,
+        'UPDATE',
+        'Task',
+        id,
+        { 
+          oldData: existingTask,
+          newData: task 
+        }
+      );
+    }
 
     return res.json(task);
   } catch (error) {
@@ -278,6 +309,22 @@ router.patch('/:id', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req:
       data: updates
     });
 
+    // Log the update action manually
+    const userId = req.context?.user?.userId;
+    if (userId) {
+      await logAction(
+        userId,
+        'UPDATE',
+        'Task',
+        id,
+        {
+          oldData: existingTask,
+          updatedFields: updates,
+          newData: task
+        }
+      );
+    }
+
     return res.json(task);
   } catch (error) {
     console.error('Error updating task:', error);
@@ -323,6 +370,18 @@ router.delete('/:id', requireRole(['USER', 'PROJECT_MANAGER'], true), async (req
     await prisma.task.delete({
       where: { id }
     });
+
+    // Log the delete action manually
+    const userId = req.context?.user?.userId;
+    if (userId) {
+      await logAction(
+        userId,
+        'DELETE',
+        'Task',
+        id,
+        { deletedData: existingTask }
+      );
+    }
 
     return res.json({ message: 'Task deleted successfully' });
   } catch (error) {
@@ -448,4 +507,4 @@ router.delete('/:taskId/dependencies/:dependsOnId', requireRole(['USER', 'PROJEC
   }
 });
 
-export default router; 
+export default router;
