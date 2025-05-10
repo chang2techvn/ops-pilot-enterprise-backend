@@ -6,7 +6,8 @@ import workflowRoutes from './workflows/routes';
 import taskRoutes from './tasks/routes';
 import projectRoutes from './projects/routes';
 import timelogRoutes from './timelogs/routes';
-import etlRoutes from './etl/routes';  // Import ETL routes
+import etlRoutes from './etl/routes';
+import kpiRoutes from './kpi/routes'; // Import KPI routes
 
 // Create Express application
 const app = express();
@@ -22,7 +23,8 @@ app.use('/workflows', workflowRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/projects', projectRoutes);
 app.use('/timelogs', timelogRoutes);
-app.use('/etl', etlRoutes);  // Register ETL routes
+app.use('/etl', etlRoutes);
+app.use('/kpi', kpiRoutes); // Register KPI routes
 
 // Route for the API root
 app.get('/', (req, res) => {
