@@ -50,6 +50,39 @@ interface TeamPerformanceEntry {
   [key: string]: any;
 }
 
+interface UserOrgType {
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+interface TaskGroupType {
+  assigneeId: string;
+  _count: {
+    id: number;
+  };
+}
+
+interface TimeLogGroupType {
+  userId: string;
+  _sum: {
+    hours: number | null;
+  };
+}
+
+interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  email: string;
+  completedTasks: number;
+  totalHoursLogged: number;
+  efficiency: number;
+  badge?: string;
+}
+
 const router = express.Router();
 // Create a cache with a default TTL of 24 hours (86400 seconds)
 const kpiCache = new NodeCache({ stdTTL: 86400 });
@@ -414,6 +447,136 @@ router.get('/team/:workflowId?', requireRole(['ADMIN', 'OWNER', 'PROJECT_MANAGER
     res.json(teamData);
   } catch (error) {
     console.error('Error generating team KPI report:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Leaderboard API endpoint - ranks users by task efficiency
+router.get('/leaderboard', requireRole(['ADMIN', 'OWNER', 'PROJECT_MANAGER', 'USER'], true), async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.context!.user!.organizationId!;
+    const cacheKey = `leaderboard-${organizationId}`;
+    
+    // Try to get data from cache first
+    let leaderboardData = kpiCache.get(cacheKey);
+    
+    if (!leaderboardData) {
+      // Get all users in the organization
+      const orgUsers = await prisma.userOrg.findMany({
+        where: { organizationId },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      });
+      
+      const userIds = orgUsers.map((ou: UserOrgType) => ou.userId);
+      
+      // Get all completed tasks per user
+      const completedTasksPerUser = await prisma.task.groupBy({
+        by: ['assigneeId'],
+        where: {
+          assigneeId: { in: userIds },
+          status: { in: ['DONE', 'COMPLETED'] }
+        },
+        _count: { id: true }
+      });
+      
+      // Get total hours logged per user
+      const hoursLoggedPerUser = await prisma.timeLog.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds } },
+        _sum: { hours: true }
+      });
+      
+      // Include hours from external logs
+      const externalHoursPerUser = await prisma.externalLog.groupBy({
+        by: ['userId'],
+        where: { 
+          userId: { in: userIds },
+          // Only include records where userId is not null
+          NOT: { userId: null }
+        },
+        _sum: { hours: true }
+      });
+      
+      // Combine the data to calculate efficiency
+      const leaderboard: LeaderboardEntry[] = userIds.map((userId: string) => {
+        // Find the user information
+        const userInfo = orgUsers.find((u: UserOrgType) => u.userId === userId)?.user;
+        
+        // Find completed tasks for this user
+        const completedTasksInfo = completedTasksPerUser.find((t: TaskGroupType) => t.assigneeId === userId);
+        const completedTasks = completedTasksInfo ? completedTasksInfo._count.id : 0;
+        
+        // Find hours logged for this user
+        const timeLogsInfo = hoursLoggedPerUser.find((t: TimeLogGroupType) => t.userId === userId);
+        const hoursLogged = timeLogsInfo && timeLogsInfo._sum.hours ? timeLogsInfo._sum.hours : 0;
+        
+        // Find external hours for this user
+        const externalLogsInfo = externalHoursPerUser.find((e: TimeLogGroupType) => e.userId === userId);
+        const externalHours = externalLogsInfo && externalLogsInfo._sum.hours ? externalLogsInfo._sum.hours : 0;
+        
+        // Calculate total hours
+        const totalHoursLogged = hoursLogged + externalHours;
+        
+        // Calculate efficiency (tasks completed per hour)
+        // Avoid division by zero
+        const efficiency = totalHoursLogged > 0 
+          ? parseFloat((completedTasks / totalHoursLogged).toFixed(2)) 
+          : 0;
+          
+        return {
+          userId,
+          name: userInfo?.name || 'Unknown',
+          email: userInfo?.email || 'Unknown',
+          completedTasks,
+          totalHoursLogged: parseFloat(totalHoursLogged.toFixed(2)),
+          efficiency
+        };
+      });
+      
+      // Sort leaderboard by efficiency (highest first)
+      leaderboard.sort((a, b) => b.efficiency - a.efficiency);
+      
+      // Assign badges to top performers
+      if (leaderboard.length > 0) {
+        // Assign "Top Performer" to the user with highest efficiency
+        if (leaderboard[0].efficiency > 0) {
+          leaderboard[0].badge = "Top Performer";
+        }
+        
+        // Assign badges based on task completion count
+        leaderboard.forEach(entry => {
+          if (entry.completedTasks >= 50) {
+            entry.badge = "Task Master";
+          } else if (entry.completedTasks >= 25) {
+            entry.badge = "Task Slayer";
+          } else if (entry.completedTasks >= 10) {
+            entry.badge = "Task Warrior";
+          }
+        });
+      }
+      
+      leaderboardData = {
+        leaderboard,
+        topPerformers: leaderboard.slice(0, 5),
+        lastUpdated: new Date()
+      };
+      
+      // Store in cache
+      kpiCache.set(cacheKey, leaderboardData);
+    }
+    
+    res.json(leaderboardData);
+  } catch (error) {
+    console.error('Error generating leaderboard:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
