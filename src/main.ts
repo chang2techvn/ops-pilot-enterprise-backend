@@ -8,6 +8,7 @@ import projectRoutes from './projects/routes';
 import timelogRoutes from './timelogs/routes';
 import etlRoutes from './etl/routes';
 import kpiRoutes from './kpi/routes'; 
+import exportRoutes from './exports/routes';
 import { initBackgroundJobs } from './jobs/init';
 
 // Create Express application
@@ -18,14 +19,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(authMiddleware);
 
+// Define API router with /api prefix
+const apiRouter = express.Router();
+
 // Import APIs that exist
-app.use('/auth', authRoutes);
-app.use('/workflows', workflowRoutes);
-app.use('/tasks', taskRoutes);
-app.use('/projects', projectRoutes);
-app.use('/timelogs', timelogRoutes);
-app.use('/etl', etlRoutes);
-app.use('/kpi', kpiRoutes);
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/workflows', workflowRoutes);
+apiRouter.use('/tasks', taskRoutes);
+apiRouter.use('/projects', projectRoutes);
+apiRouter.use('/timelogs', timelogRoutes);
+apiRouter.use('/etl', etlRoutes);
+apiRouter.use('/kpi', kpiRoutes);
+apiRouter.use('/exports', exportRoutes);
+
+// Mount all API routes under /api prefix
+app.use('/api', apiRouter);
 
 // Route for the API root
 app.get('/', (req, res) => {
